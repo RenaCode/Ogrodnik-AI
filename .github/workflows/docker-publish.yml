@@ -78,10 +78,16 @@ jobs:
     if: always() && needs.build-and-push.result == 'success'
     runs-on: ubuntu-latest
     steps:
+      # main jest chronione regułą wymagającą PR (ruleset "protect-main") -
+      # domyślny GITHUB_TOKEN push'uje jako github-actions[bot], który nie jest
+      # na liście wyjątków (GitHub nie pozwala dodać integracji "GitHub Actions"
+      # jako bypass actor na repo osobistym, tylko organizacyjnym). Używamy
+      # więc dedykowanego PAT (Contents: Read&Write tylko na tym repo) należącego
+      # do właściciela - taki push liczy się jako push admina i przechodzi.
       - name: Checkout repository
         uses: actions/checkout@v5
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.DEPLOY_PAT }}
 
       - name: Get short SHA
         id: vars
