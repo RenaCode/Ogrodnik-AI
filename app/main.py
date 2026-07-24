@@ -2,6 +2,8 @@ import logging
 import secrets
 import hmac
 import hashlib
+import time
+from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, HTTPException, status, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -15,20 +17,42 @@ from .scheduler import create_scheduler
 
 logging.basicConfig(level=logging.INFO)
 
-app = FastAPI(title="Ogrodnik AI - POC")
+scheduler = create_scheduler()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db()
+    scheduler.start()
+    yield
+    scheduler.shutdown()
+
+app = FastAPI(title="Ogrodnik AI - POC", lifespan=lifespan)
 templates = Jinja2Templates(directory="app/templates")
 
 # Signing helper
 SECRET_KEY = settings.admin_password
 
 def sign_session(username: str) -> str:
-    signature = hmac.new(SECRET_KEY.encode(), username.encode(), hashlib.sha256).hexdigest()
-    return f"{username}:{signature}"
+    expires_at = int(time.time()) + (7 * 24 * 60 * 60)  # 7 days
+    nonce = secrets.token_hex(16)
+    payload = f"{username}:{expires_at}:{nonce}"
+    signature = hmac.new(SECRET_KEY.encode(), payload.encode(), hashlib.sha256).hexdigest()
+    return f"{payload}:{signature}"
 
 def verify_session(cookie_value: str) -> bool:
     try:
-        username, signature = cookie_value.split(":", 1)
-        expected = hmac.new(SECRET_KEY.encode(), username.encode(), hashlib.sha256).hexdigest()
+        parts = cookie_value.split(":")
+        if len(parts) != 4:
+            return False
+        username, expires_at_str, nonce, signature = parts
+        
+        # Verify expiration
+        if time.time() > int(expires_at_str):
+            return False
+            
+        # Verify signature
+        payload = f"{username}:{expires_at_str}:{nonce}"
+        expected = hmac.new(SECRET_KEY.encode(), payload.encode(), hashlib.sha256).hexdigest()
         if hmac.compare_digest(signature, expected) and username == settings.admin_username:
             return True
     except Exception:
@@ -102,18 +126,7 @@ app.include_router(settings_router.router, dependencies=[Depends(authenticate)])
 app.mount("/photos", StaticFiles(directory=str(settings.photos_dir)), name="photos")
 app.mount("/maps", StaticFiles(directory=str(settings.maps_dir)), name="maps")
 
-scheduler = create_scheduler()
-
-
-@app.on_event("startup")
-async def on_startup():
-    init_db()
-    scheduler.start()
-
-
-@app.on_event("shutdown")
-async def on_shutdown():
-    scheduler.shutdown()
+# scheduler and lifecycle events are now managed via lifespan on app initialization
 
 
 @app.get("/health")
