@@ -4,16 +4,15 @@ from typing import Optional
 
 from fastapi import APIRouter, Form, Request, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
 from sqlmodel import select
 
 from ..config import settings
 from ..db import get_session
 from ..integrations.gemini import GeminiClient
 from ..models import GardenMapImage, Plant
+from ..templates import templates
 
 router = APIRouter(tags=["garden"])
-templates = Jinja2Templates(directory="app/templates")
 
 
 def _latest_map_image() -> Optional[GardenMapImage]:

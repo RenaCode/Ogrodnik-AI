@@ -1,37 +1,44 @@
 {% extends "base.html" %}
 {% block content %}
 
-<h1 class="text-xl font-semibold mb-4">Ustawienia</h1>
+<h1 class="text-xl font-semibold mb-4">{{ t("Ustawienia") }}</h1>
 
 {% if saved %}
-<div class="bg-green-100 text-green-800 rounded p-3 mb-4">Zapisano ustawienia.</div>
+<div class="bg-green-100 text-green-800 rounded p-3 mb-4">{{ t("Zapisano ustawienia.") }}</div>
 {% endif %}
 
 <form method="post" class="bg-white rounded-lg shadow p-4 flex flex-col gap-4 max-w-xl">
   {% for f in fields %}
   <div>
-    <label class="block text-sm font-medium mb-1">{{ f.label }}</label>
-    <input
-      type="{{ f.type }}"
-      name="{{ f.key }}"
-      value="{{ f.value }}"
-      placeholder="{{ 'wpisz, aby ustawić/zmienić' if f.type == 'password' else '' }}"
-      class="border rounded p-2 w-full"
-      autocomplete="off"
-    />
-    {% if f.type == 'password' %}
-      <div class="text-xs mt-1 {{ 'text-green-600' if f.configured else 'text-gray-400' }}">
-        {{ 'Ustawiony - pole pozostaw puste, żeby nie zmieniać.' if f.configured else 'Nieustawiony.' }}
-      </div>
+    <label class="block text-sm font-medium mb-1">{{ t(f.label) }}</label>
+    {% if f.type == 'select' %}
+      <select name="{{ f.key }}" class="border rounded p-2 w-full">
+        <option value="pl" {% if f.value == 'pl' %}selected{% endif %}>Polski / Polish</option>
+        <option value="en" {% if f.value == 'en' %}selected{% endif %}>English / Angielski</option>
+      </select>
+    {% else %}
+      <input
+        type="{{ f.type }}"
+        name="{{ f.key }}"
+        value="{{ f.value }}"
+        placeholder="{{ 'wpisz, aby ustawić/zmienić' if f.type == 'password' else '' }}"
+        class="border rounded p-2 w-full"
+        autocomplete="off"
+      />
+      {% if f.type == 'password' %}
+        <div class="text-xs mt-1 {{ 'text-green-600' if f.configured else 'text-gray-400' }}">
+          {{ 'Ustawiony - pole pozostaw puste, żeby nie zmieniać.' if f.configured else 'Nieustawiony.' }}
+        </div>
+      {% endif %}
     {% endif %}
   </div>
   {% endfor %}
-  <button type="submit" class="bg-green-600 text-white rounded p-2 hover:bg-green-700">Zapisz</button>
+  <button type="submit" class="bg-green-600 text-white rounded p-2 hover:bg-green-700">{{ t("Zapisz") }}</button>
 </form>
 
 <p class="text-xs text-gray-500 mt-4 max-w-xl">
-  Te ustawienia mają priorytet nad zmiennymi z .env i są trzymane w lokalnej bazie
-  SQLite (bez szyfrowania) - wygodne w Dockerze, bo nie wymaga przebudowy obrazu
-  ani restartu kontenera po zmianie klucza.
+  {{ t("Te ustawienia mają priorytet nad zmiennymi z .env i są trzymane w lokalnej bazie") }}
+  {{ t("SQLite (bez szyfrowania) - wygodne w Dockerze, bo nie wymaga przebudowy obrazu") }}
+  {{ t("ani restartu kontenera po zmianie klucza.") }}
 </p>
 {% endblock %}
