@@ -2,7 +2,7 @@ replicaCount: 1
 
 image:
   repository: ghcr.io/mbeczynski/ogrodnik-ai
-  tag: "sha-e5afc34"
+  tag: "sha-bedbf19"
   pullPolicy: IfNotPresent
 
 dbImage:
