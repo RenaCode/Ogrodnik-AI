@@ -1,52 +1,54 @@
-# 🌱 Ogrodnik AI
+# 🌱 Ogrodnik AI (Garden Assistant AI)
 
-Webowy dashboard ogrodowy, który łączy w jednym miejscu:
+A web-based garden dashboard that aggregates:
 
-- **nawadnianie** — Hunter Hydrawise (Wi-Fi),
-- **koszenie** — robot Dreame (przez most Home Assistant),
-- **pogodę** dla lokalizacji ogrodu (Open-Meteo, bez klucza API),
-- **ręczny log działań** (nawożenie, sadzenie, przycinanie, ochrona roślin) ze zdjęciami,
-- **mapę ogrodu** z rozmieszczeniem roślin (pinezki na zdjęciu/szkicu),
-- **analizę AI** (Gemini) — wnioski i rekomendacje generowane automatycznie co 24h
-  oraz na żądanie, a także rozpoznawanie roślin ze zdjęcia.
+*   **Irrigation** — Hunter Hydrawise (Wi-Fi),
+*   **Mowing** — Dreame robot (via Home Assistant bridge),
+*   **Weather** — Local garden coordinates forecast (Open-Meteo, API key not required),
+*   **Manual action logs** (fertilizing, planting, pruning, plant protection) with photos,
+*   **Garden map** with plant positioning (interactive pins on a photo or sketch),
+*   **AI Analysis (Gemini)** — Auto-generated insights and recommendations every 24 hours, on-demand analysis, and plant species recognition from photos.
 
-Wszystkie zebrane dane trzymane są we własnej bazie SQLite, bo domyślny rekorder
-Home Assistant przechowuje historię tylko ~10 dni.
+All collected data is stored in a local SQLite database, as the default Home Assistant recorder only keeps history for ~10 days.
 
+---
 
-## Funkcje
+## Features
 
-| Obszar | Co robi |
-|---|---|
-| Dashboard | Podsumowanie podlewań, koszeń, pogody i najnowszych wniosków AI |
-| Hunter Hydrawise | Polling harmonogramu, budowanie lokalnej historii podlewań |
-| Dreame (kosiarka) | Historia koszeń przez Home Assistant (REST API) |
-| Pogoda | Aktualne dane i prognoza dla współrzędnych ogrodu (Open-Meteo) |
-| Log akcji | Formularz + zdjęcia dla nawożenia, sadzenia, przycinania itd. |
-| Mapa ogrodu | Wgraj zdjęcie/szkic, klikaj pozycje, dodawaj rośliny jako pinezki |
-| AI rozpoznawanie roślin | Wgraj zdjęcie z ogrodu, Gemini Vision proponuje gatunki do mapy |
-| Analiza AI | Automatyczne wnioski co 24h + analiza na żądanie, historia wniosków |
-| Ustawienia w UI | Klucze API i parametry edytowalne z aplikacji, bez restartu kontenera |
+| Area | Description |
+| :--- | :--- |
+| Dashboard | Summary of watering, mowing, weather, and latest AI insights |
+| Hunter Hydrawise | Schedule polling, local watering history builder |
+| Dreame Mower | Mowing history fetched via Home Assistant (REST API) |
+| Weather | Real-time and forecast data for the garden's coordinates (Open-Meteo) |
+| Action Logs | Form and photo uploads for fertilizing, planting, pruning, etc. |
+| Garden Map | Upload a photo/sketch, click to set locations, and map plants with pins |
+| AI Plant Recognition | Upload a photo of a plant; Gemini Vision suggests species for mapping |
+| AI Analysis | Daily automated reports (every 24h) + on-demand analysis with history |
+| Settings in UI | Edit API keys and coordinates directly in the app without container restarts |
 
-## Szybki start (Docker — zalecane)
+---
+
+## Quick Start (Docker — Recommended)
 
 ```bash
-git clone <adres-twojego-repo> ogrodnik-ai
+git clone <your-repo-url> ogrodnik-ai
 cd ogrodnik-ai
 
 cp .env.example .env
-# .env możesz zostawić w większości puste — wszystkie klucze API da się
-# wpisać później w aplikacji, w zakładce "Ustawienia"
+# You can leave most of .env empty — all API keys can 
+# be entered later in the application under "Settings"
 
 docker compose up -d --build
 ```
 
-Otwórz http://localhost:8000
+Open `http://localhost:8000`
 
-Dane (baza SQLite, zdjęcia, mapy) trzymane są w wolumenie Dockera `ogrodnik_data`,
-więc przetrwają restart i rebuild kontenera.
+All data (SQLite database, uploaded photos, and maps) is stored in the Docker volume `ogrodnik_data`, so it will persist across container restarts and rebuilds.
 
-## Szybki start (lokalnie, bez Dockera)
+---
+
+## Quick Start (Local, without Docker)
 
 ```bash
 python3 -m venv .venv
@@ -58,38 +60,40 @@ cp .env.example .env
 uvicorn app.main:app --reload
 ```
 
-Otwórz http://localhost:8000
+Open `http://localhost:8000`
 
-## Konfiguracja kluczy API
+---
 
-Klucze (Hydrawise, Home Assistant, Gemini) można ustawić dwoma sposobami:
+## API Key Configuration
 
-1. **W aplikacji** — zakładka *Ustawienia* (`/settings`). Wartość zapisana tu ma
-   priorytet nad `.env` i działa od razu, bez restartu kontenera — wygodne przy
-   Dockerze.
-2. **W `.env`** — przed pierwszym startem, patrz [`.env.example`](./.env.example).
+Keys (Hydrawise, Home Assistant, Gemini) can be configured in two ways:
 
-Aplikacja działa od razu (bez żadnych kluczy) dla: dashboardu, formularza akcji
-ogrodowych ze zdjęciami, mapy ogrodu i pogody (Open-Meteo nie wymaga klucza).
-Hydrawise, Dreame/Home Assistant i Gemini AI aktywują się automatycznie po
-uzupełnieniu odpowiednich danych.
+1.  **In the Application**: In the *Settings* tab (`/settings`). Values configured here override `.env` and take effect immediately without restarting the container — ideal for Docker deployments.
+2.  **In the `.env` File**: Before the first launch, see [`.env.example`](./.env.example).
 
-## Status integracji
+The application works out of the box (without any keys) for the dashboard, garden action log with photo uploads, garden map, and weather (Open-Meteo does not require a key). Hydrawise, Dreame/Home Assistant, and Gemini AI activate automatically once their corresponding configuration is supplied.
 
-| Integracja | Wymaga | Status w POC |
-|---|---|---|
-| Open-Meteo (pogoda) | nic | działa od razu |
-| Log akcji + zdjęcia | nic | działa od razu |
-| Mapa ogrodu (rośliny) | nic | działa od razu |
-| Hunter Hydrawise | API key | działa (polling, historia budowana lokalnie) |
-| Dreame (kosiarka) | Home Assistant + integracja kosiarki | szkielet gotowy, wymaga skonfigurowanego HA |
-| Gemini AI (analiza + rozpoznawanie roślin) | API key z [aistudio.google.com](https://aistudio.google.com/apikey) | działa (automatycznie co 24h + na żądanie) |
+---
 
-## Stack technologiczny
+## Integration Status
 
-FastAPI + Jinja2 (server-rendered, bez SPA) · SQLModel/SQLite · APScheduler ·
-httpx · Tailwind CSS i Chart.js z CDN · Docker / docker-compose.
+| Integration | Requires | POC Status |
+| :--- | :--- | :--- |
+| Open-Meteo (Weather) | Nothing | Active out of the box |
+| Action Log & Photos | Nothing | Active out of the box |
+| Garden Map (Plants) | Nothing | Active out of the box |
+| Hunter Hydrawise | API key | Working (polling, local history building) |
+| Dreame Mower | Home Assistant + mower integration | Core skeleton ready, requires configured Home Assistant |
+| Gemini AI (Analysis & Plant ID) | API key from [aistudio.google.com](https://aistudio.google.com/apikey) | Working (automatically every 24h + on-demand) |
 
-## Licencja
+---
 
-[MIT](./LICENSE) — używaj, modyfikuj i rozwijaj swobodnie.
+## Technology Stack
+
+FastAPI + Jinja2 (server-side rendering, no SPA) · SQLModel/SQLite · APScheduler · httpx · Tailwind CSS & Chart.js via CDN · Docker / Docker Compose.
+
+---
+
+## License
+
+[MIT](./LICENSE) — free to use, modify, and distribute.

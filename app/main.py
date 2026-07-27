@@ -6,8 +6,7 @@ import hashlib
 from fastapi import Depends, FastAPI, HTTPException, status, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
-
+from .templates import templates
 from .config import settings
 from .db import init_db
 from .routers import actions, api, dashboard, garden, settings as settings_router
@@ -16,7 +15,6 @@ from .scheduler import create_scheduler
 logging.basicConfig(level=logging.INFO)
 
 app = FastAPI(title="Ogrodnik AI - POC")
-templates = Jinja2Templates(directory="app/templates")
 
 # Signing helper
 SECRET_KEY = settings.admin_password

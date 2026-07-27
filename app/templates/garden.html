@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 
-<h1 class="text-xl font-semibold mb-4">Mapa ogrodu</h1>
+<h1 class="text-xl font-semibold mb-4">{{ t("Mapa ogrodu") }}</h1>
 
 <div class="grid grid-cols-3 gap-6">
   <div class="col-span-2">
@@ -12,9 +12,8 @@
         style="aspect-ratio: 4/3; {% if map_image_path %}background-image:url('/maps/{{ map_image_path }}'); background-size:cover; background-position:center;{% endif %}"
       >
         {% if not map_image_path %}
-        <div class="absolute inset-0 flex items-center justify-center text-green-700 text-sm">
-          Brak zdjęcia mapy - wgraj zdjęcie/szkic ogrodu poniżej, albo kliknij tutaj, żeby
-          dodać rośliny bez tła (pozycje względne).
+        <div class="absolute inset-0 flex items-center justify-center text-green-700 text-sm p-4 text-center">
+          {{ t("Brak zdjęcia mapy - wgraj zdjęcie/szkic ogrodu poniżej, albo kliknij tutaj, żeby dodać rośliny bez tła (pozycje względne).") }}
         </div>
         {% endif %}
         {% for p in plants %}
@@ -33,24 +32,24 @@
         {% endfor %}
       </div>
       <div class="text-xs text-gray-500 mt-2">
-        Wybrana pozycja na mapie: <span id="picked-pos" class="font-mono">brak - kliknij na mapie</span>
+        {{ t("Wybrana pozycja na mapie:") }} <span id="picked-pos" class="font-mono">{{ t("brak - kliknij na mapie") }}</span>
       </div>
     </div>
 
     <div class="bg-white rounded-lg shadow p-3 mb-4">
-      <h2 class="font-semibold mb-2 text-sm">Zmień zdjęcie/szkic mapy</h2>
+      <h2 class="font-semibold mb-2 text-sm">{{ t("Zmień zdjęcie/szkic mapy") }}</h2>
       <form action="/garden/map-image" method="post" enctype="multipart/form-data" class="flex gap-2">
         <input type="file" name="photo" accept="image/*" required class="border rounded p-2 flex-1 text-sm" />
-        <button type="submit" class="bg-green-600 text-white rounded px-3 text-sm hover:bg-green-700">Wgraj</button>
+        <button type="submit" class="bg-green-600 text-white rounded px-3 text-sm hover:bg-green-700">{{ t("Wgraj") }}</button>
       </form>
     </div>
 
     <div class="bg-white rounded-lg shadow p-3">
-      <h2 class="font-semibold mb-2 text-sm">🤖 Rozpoznaj rośliny ze zdjęcia (AI)</h2>
+      <h2 class="font-semibold mb-2 text-sm">🤖 {{ t("Rozpoznaj rośliny ze zdjęcia (AI)") }}</h2>
       <div class="flex gap-2 mb-2">
         <input type="file" id="ai-photo" accept="image/*" class="border rounded p-2 flex-1 text-sm" />
         <button onclick="identifyPlants()" class="bg-purple-600 text-white rounded px-3 text-sm hover:bg-purple-700">
-          Analizuj
+          {{ t("Analizuj") }}
         </button>
       </div>
       <div id="ai-status" class="text-xs text-gray-500"></div>
@@ -60,25 +59,25 @@
 
   <div>
     <div class="bg-white rounded-lg shadow p-3 mb-4">
-      <h2 class="font-semibold mb-2 text-sm">Dodaj roślinę</h2>
+      <h2 class="font-semibold mb-2 text-sm">{{ t("Dodaj roślinę") }}</h2>
       <form action="/plants" method="post" enctype="multipart/form-data" class="flex flex-col gap-2" id="add-plant-form">
-        <input type="text" name="name" id="plant-name" placeholder="Nazwa (np. Lawenda)" required class="border rounded p-2 text-sm" />
-        <input type="text" name="scientific_name" id="plant-scientific" placeholder="Nazwa łacińska (opcjonalnie)" class="border rounded p-2 text-sm" />
-        <input type="text" name="zone" placeholder="Strefa (opcjonalnie)" class="border rounded p-2 text-sm" />
-        <textarea name="notes" id="plant-notes" placeholder="Notatki (opcjonalnie)" class="border rounded p-2 text-sm"></textarea>
+        <input type="text" name="name" id="plant-name" placeholder="{{ t('Nazwa (np. Lawenda)') }}" required class="border rounded p-2 text-sm" />
+        <input type="text" name="scientific_name" id="plant-scientific" placeholder="{{ t('Nazwa łacińska (opcjonalnie)') }}" class="border rounded p-2 text-sm" />
+        <input type="text" name="zone" placeholder="{{ t('Strefa (opcjonalnie)') }}" class="border rounded p-2 text-sm" />
+        <textarea name="notes" id="plant-notes" placeholder="{{ t('Notatki (opcjonalnie)') }}" class="border rounded p-2 text-sm"></textarea>
         <input type="file" name="photo" accept="image/*" class="border rounded p-2 text-sm" />
         <input type="hidden" name="x_pct" id="x_pct" />
         <input type="hidden" name="y_pct" id="y_pct" />
         <input type="hidden" name="added_via" id="added_via" value="manual" />
         <button type="submit" class="bg-green-600 text-white rounded p-2 text-sm hover:bg-green-700">
-          Zapisz na mapie
+          {{ t("Zapisz na mapie") }}
         </button>
-        <div class="text-xs text-gray-500">Najpierw kliknij pozycję na mapie po lewej.</div>
+        <div class="text-xs text-gray-500">{{ t("Najpierw kliknij pozycję na mapie po lewej.") }}</div>
       </form>
     </div>
 
     <div class="bg-white rounded-lg shadow p-3">
-      <h2 class="font-semibold mb-2 text-sm">Rośliny w ogrodzie ({{ plants|length }})</h2>
+      <h2 class="font-semibold mb-2 text-sm">{{ t("Rośliny w ogrodzie") }} ({{ plants|length }})</h2>
       <ul class="divide-y text-sm">
         {% for p in plants %}
         <li class="py-2">
@@ -86,17 +85,17 @@
             <div>
               <div class="font-medium">{{ p.name }}</div>
               {% if p.scientific_name %}<div class="text-xs italic text-gray-500">{{ p.scientific_name }}</div>{% endif %}
-              {% if p.zone %}<div class="text-xs text-gray-500">Strefa: {{ p.zone }}</div>{% endif %}
+              {% if p.zone %}<div class="text-xs text-gray-500">{{ t("Strefa:") }} {{ p.zone }}</div>{% endif %}
               {% if p.notes %}<div class="text-xs">{{ p.notes }}</div>{% endif %}
-              <div class="text-xs text-gray-400">{{ "dodano przez AI" if p.added_via == "ai" else "dodano ręcznie" }}</div>
+              <div class="text-xs text-gray-400">{{ t("dodano przez AI") if p.added_via == "ai" else t("dodano ręcznie") }}</div>
             </div>
             <form action="/plants/{{ p.id }}/delete" method="post">
-              <button type="submit" class="text-red-500 text-xs hover:underline">usuń</button>
+              <button type="submit" class="text-red-500 text-xs hover:underline">{{ t("usuń") }}</button>
             </form>
           </div>
         </li>
         {% else %}
-        <li class="text-gray-400 py-2">Brak roślin - dodaj pierwszą po lewej.</li>
+        <li class="text-gray-400 py-2">{{ t("Brak roślin w ogrodzie.") }}</li>
         {% endfor %}
       </ul>
     </div>
@@ -120,10 +119,10 @@ async function identifyPlants() {
   const list = document.getElementById('ai-suggestions');
   list.innerHTML = '';
   if (!input.files.length) {
-    status.innerText = 'Wybierz najpierw zdjęcie.';
+    status.innerText = '{{ t("Wybierz najpierw zdjęcie.") }}';
     return;
   }
-  status.innerText = 'Analizuję zdjęcie...';
+  status.innerText = '{{ t("Analizuję zdjęcie...") }}';
   const formData = new FormData();
   formData.append('photo', input.files[0]);
   try {
@@ -133,30 +132,30 @@ async function identifyPlants() {
       status.innerText = data.error;
       return;
     }
-    status.innerText = `Znaleziono ${data.suggestions.length} propozycji - kliknij pozycję na mapie, potem "Użyj".`;
+    status.innerText = `{{ t("Znaleziono") }} ${data.suggestions.length} {{ t("propozycji - kliknij pozycję na mapie, potem \"Użyj\".") }}`;
     data.suggestions.forEach((s) => {
       const li = document.createElement('li');
       li.className = 'border rounded p-2 text-sm flex justify-between items-center gap-2';
       li.innerHTML = `
         <div>
           <div class="font-medium">${s.name}</div>
-          ${s.scientific_name ? `<div class="text-xs italic text-gray-500">${s.scientific_name}</div>` : ''}
-          ${s.notes ? `<div class="text-xs text-gray-500">${s.notes}</div>` : ''}
+          \${s.scientific_name ? `<div class="text-xs italic text-gray-500">\${s.scientific_name}</div>` : ''}
+          \${s.notes ? `<div class="text-xs text-gray-500">\${s.notes}</div>` : ''}
         </div>
-        <button class="bg-purple-100 text-purple-700 text-xs rounded px-2 py-1 hover:bg-purple-200 shrink-0">Użyj</button>
+        <button class="bg-purple-100 text-purple-700 text-xs rounded px-2 py-1 hover:bg-purple-200 shrink-0">{{ t("Użyj") }}</button>
       `;
       li.querySelector('button').addEventListener('click', () => {
         document.getElementById('plant-name').value = s.name || '';
         document.getElementById('plant-scientific').value = s.scientific_name || '';
         document.getElementById('plant-notes').value = s.notes || '';
         document.getElementById('added_via').value = 'ai';
-        status.innerText = 'Teraz kliknij pozycję na mapie po lewej i zapisz formularz.';
+        status.innerText = '{{ t("Teraz kliknij pozycję na mapie po lewej i zapisz formularz.") }}';
         window.scrollTo({ top: 0, behavior: 'smooth' });
       });
       list.appendChild(li);
     });
   } catch (e) {
-    status.innerText = 'Błąd: ' + e;
+    status.innerText = '{{ t("Błąd") }}: ' + e;
   }
 }
 </script>

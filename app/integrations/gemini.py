@@ -31,6 +31,15 @@ ANALYSIS_SYSTEM_PROMPT = (
     "nienawożony trawnik) oraz 2-3 konkretne rekomendacje na następne dni."
 )
 
+ANALYSIS_SYSTEM_PROMPT_EN = (
+    "You are a gardening assistant analyzing data from sensors and garden logs "
+    "(Hunter Hydrawise irrigation, Dreame mowing, weather, manual action logs such "
+    "as fertilization). Based on the provided data, provide a short (max 8 points), "
+    "concrete analysis in English: what looks good, what looks concerning or "
+    "suboptimal (e.g. watering despite rain, mowing too rarely/frequently, lawn "
+    "not fertilized for a long time) and 2-3 concrete recommendations for the next days."
+)
+
 PLANT_ID_PROMPT = (
     "Jesteś botanikiem analizującym zdjęcie z ogrodu. Zidentyfikuj wszystkie rośliny "
     "widoczne na zdjęciu. Odpowiedz WYŁĄCZNIE poprawnym JSON-em (bez markdown, bez "
@@ -38,6 +47,15 @@ PLANT_ID_PROMPT = (
     "[{\"name\": \"polska nazwa zwyczajowa\", \"scientific_name\": \"nazwa łacińska albo null\", "
     "\"notes\": \"krótka uwaga, np. stan zdrowia, pozycja na zdjęciu (lewo/środek/prawo, "
     "przód/tył)\"}]. Jeśli nie rozpoznajesz żadnej rośliny, zwróć []."
+)
+
+PLANT_ID_PROMPT_EN = (
+    "You are a botanist analyzing a photo from a garden. Identify all plants "
+    "visible in the photo. Respond EXCLUSIVELY with a valid JSON (no markdown, no "
+    "```), in the format: "
+    "[{\"name\": \"English common name\", \"scientific_name\": \"latin name or null\", "
+    "\"notes\": \"short note, e.g. health status, position in the photo (left/center/right, "
+    "front/back)\"}]. If you do not recognize any plant, return []."
 )
 
 
@@ -78,7 +96,9 @@ class GeminiClient:
 
     async def analyze(self, data_summary: str) -> str:
         """Analiza tekstowych danych ogrodowych -> wnioski i rekomendacje (tekst)."""
-        return await self._generate([{"text": data_summary}], ANALYSIS_SYSTEM_PROMPT)
+        lang = rs.get_value("language") or "pl"
+        prompt = ANALYSIS_SYSTEM_PROMPT_EN if lang == "en" else ANALYSIS_SYSTEM_PROMPT
+        return await self._generate([{"text": data_summary}], prompt)
 
     async def identify_plants(self, image_bytes: bytes, mime_type: str = "image/jpeg") -> list[dict[str, Any]]:
         """
@@ -87,11 +107,14 @@ class GeminiClient:
         Jeśli model nie zwrócił poprawnego JSON-a, zwraca jeden wpis z surowym
         tekstem w polu "notes", żeby nic nie zgubić.
         """
+        lang = rs.get_value("language") or "pl"
+        user_text = "Identify the plants in this garden photo." if lang == "en" else "Zidentyfikuj rośliny na tym zdjęciu ogrodu."
+        prompt = PLANT_ID_PROMPT_EN if lang == "en" else PLANT_ID_PROMPT
         parts = [
             {"inlineData": {"mimeType": mime_type, "data": b64encode(image_bytes).decode("ascii")}},
-            {"text": "Zidentyfikuj rośliny na tym zdjęciu ogrodu."},
+            {"text": user_text},
         ]
-        text = await self._generate(parts, PLANT_ID_PROMPT, max_tokens=1000)
+        text = await self._generate(parts, prompt, max_tokens=1000)
 
         cleaned = re.sub(r"^```(json)?|```$", "", text.strip(), flags=re.MULTILINE).strip()
         try:
@@ -100,4 +123,5 @@ class GeminiClient:
                 return data
         except json.JSONDecodeError:
             pass
-        return [{"name": "Nie udało się rozpoznać automatycznie", "scientific_name": None, "notes": text}]
+        fallback_name = "Could not recognize automatically" if lang == "en" else "Nie udało się rozpoznać automatycznie"
+        return [{"name": fallback_name, "scientific_name": None, "notes": text}]
