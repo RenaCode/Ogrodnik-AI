@@ -36,7 +36,8 @@ git clone <your-repo-url> ogrodnik-ai
 cd ogrodnik-ai
 
 cp .env.example .env
-# You can leave most of .env empty — all API keys can 
+# Fill in ADMIN_PASSWORD and SECRET_KEY — see "Required Configuration" below.
+# The rest of .env can stay empty — all API keys can
 # be entered later in the application under "Settings"
 
 docker compose up -d --build
@@ -61,6 +62,44 @@ uvicorn app.main:app --reload
 ```
 
 Open `http://localhost:8000`
+
+---
+
+## Required Configuration
+
+Two environment variables have **no default value** and the application refuses to
+start without them. This is deliberate: this repository is public, so any default
+baked into the source would be known to everyone — and the login screen is the only
+thing guarding the *Settings* tab, which holds your Home Assistant token and API keys.
+
+| Variable | Purpose |
+| :--- | :--- |
+| `ADMIN_PASSWORD` | Password for the admin panel (username comes from `ADMIN_USERNAME`, default `admin`) |
+| `SECRET_KEY` | Key used to sign session identifiers — a **separate** secret, not the password |
+
+Generate a `SECRET_KEY` with:
+
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(48))"
+```
+
+Set both in `.env` (Docker Compose reads it via `env_file`), or — for the Helm chart —
+in the Kubernetes Secret referenced by `secretName` in `charts/ogrodnik/values.yaml`.
+If either is missing, startup aborts with a message naming the variable.
+
+Sessions are stored server-side in the SQLite database, so logging out really
+invalidates the session token and sessions survive a pod restart.
+
+---
+
+## Database Browser (sqlite-web)
+
+`docker-compose.yml` ships an optional `sqlite-web` container bound to `127.0.0.1:8082`.
+In the Helm chart the same sidecar is available under `dbWeb.enabled` and is **disabled
+by default** — inside a cluster it would listen on the pod IP with no authentication,
+letting any other pod read and overwrite the `appsetting` table (Home Assistant token,
+Gemini and Hydrawise keys) without logging in. Enable it only temporarily, and preferably
+alongside a NetworkPolicy restricting port 8080.
 
 ---
 

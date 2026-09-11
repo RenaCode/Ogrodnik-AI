@@ -79,6 +79,27 @@ class AppSetting(SQLModel, table=True):
     value: Optional[str] = None
 
 
+class SessionToken(SQLModel, table=True):
+    """
+    Aktywna sesja zalogowanego użytkownika - patrz app/sessions.py.
+
+    Trzymamy sesje w bazie (a nie w pamięci procesu), bo pod na k3s restartuje
+    się przy każdym wdrożeniu (115 ReplicaSetów w ~2,5 miesiąca), a sesje w
+    pamięci znikałyby wtedy razem z nim. Baza leży na PVC, więc przeżywa
+    rollout i pozwala realnie unieważnić sesję przy wylogowaniu.
+
+    W kolumnie NIE ma surowego tokenu z ciasteczka, tylko HMAC-SHA256 z niego,
+    liczony kluczem SECRET_KEY. Dzięki temu ktoś, kto potrafi czytać albo
+    zapisywać tę bazę z boku (np. sidecar sqlite-web), ani nie odtworzy cudzej
+    sesji, ani nie wstrzyknie własnej - nie zna klucza.
+    """
+
+    token_hash: str = Field(primary_key=True)
+    username: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    expires_at: datetime = Field(index=True)
+
+
 class Plant(SQLModel, table=True):
     """Roślina umieszczona na mapie ogrodu (pin)."""
 

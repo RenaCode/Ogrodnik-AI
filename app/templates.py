@@ -11,6 +11,8 @@ TRANSLATIONS = {
     "Hasło": "Password",
     "Mój ogród": "My Garden",
     "Zabezpieczono przez Ogrodnik AI.": "Secured by Gardener AI.",
+    "Niepoprawny login lub hasło": "Incorrect username or password",
+    "Zbyt wiele nieudanych prób. Spróbuj ponownie za kilkanaście minut.": "Too many failed attempts. Please try again in a few minutes.",
     "Wyloguj": "Log Out",
     "Ogrodnik AI": "Gardener AI",
     "Ustawienia": "Settings",

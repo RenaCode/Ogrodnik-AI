@@ -1,12 +1,11 @@
 import logging
 import secrets
-import hmac
-import hashlib
 
 from fastapi import Depends, FastAPI, HTTPException, status, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from .templates import templates
+from . import login_guard, sessions
 from .config import settings
 from .db import init_db
 from .routers import actions, api, dashboard, garden, settings as settings_router
@@ -14,28 +13,18 @@ from .scheduler import create_scheduler
 
 logging.basicConfig(level=logging.INFO)
 
+logger = logging.getLogger("ogrodnik.auth")
+
 app = FastAPI(title="Ogrodnik AI - POC")
 
-# Signing helper
-SECRET_KEY = settings.admin_password
 
-def sign_session(username: str) -> str:
-    signature = hmac.new(SECRET_KEY.encode(), username.encode(), hashlib.sha256).hexdigest()
-    return f"{username}:{signature}"
+def _client_ip(request: Request) -> str:
+    return request.client.host if request.client else "unknown"
 
-def verify_session(cookie_value: str) -> bool:
-    try:
-        username, signature = cookie_value.split(":", 1)
-        expected = hmac.new(SECRET_KEY.encode(), username.encode(), hashlib.sha256).hexdigest()
-        if hmac.compare_digest(signature, expected) and username == settings.admin_username:
-            return True
-    except Exception:
-        pass
-    return False
 
 def authenticate(request: Request):
-    session_token = request.cookies.get("session_token")
-    if not session_token or not verify_session(session_token):
+    username = sessions.resolve_session(request.cookies.get(sessions.COOKIE_NAME))
+    if username is None:
         if request.url.path.startswith("/api"):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -45,7 +34,7 @@ def authenticate(request: Request):
             status_code=status.HTTP_307_TEMPORARY_REDIRECT,
             headers={"Location": "/login"}
         )
-    return settings.admin_username
+    return username
 
 # Custom exception handler to process redirect exceptions smoothly
 @app.exception_handler(HTTPException)
@@ -58,28 +47,40 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 # Authentication endpoints
 @app.get("/login", response_class=HTMLResponse)
 def login_get(request: Request):
-    session_token = request.cookies.get("session_token")
-    if session_token and verify_session(session_token):
+    if sessions.resolve_session(request.cookies.get(sessions.COOKIE_NAME)):
         return RedirectResponse(url="/", status_code=303)
     return templates.TemplateResponse("login.html", {"request": request, "error": None})
 
 @app.post("/login")
 def login_post(request: Request, username: str = Form(...), password: str = Form(...)):
+    client_ip = _client_ip(request)
+
+    if login_guard.is_blocked(client_ip, username):
+        logger.warning("Zbyt wiele nieudanych prób logowania z %s (login: %s)", client_ip, username)
+        return templates.TemplateResponse(
+            "login.html",
+            {"request": request, "error": "Zbyt wiele nieudanych prób. Spróbuj ponownie za kilkanaście minut."},
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+        )
+
     correct_username = secrets.compare_digest(username, settings.admin_username)
     correct_password = secrets.compare_digest(password, settings.admin_password)
-    
+
     if correct_username and correct_password:
+        login_guard.reset(client_ip, username)
+        token, max_age = sessions.create_session(settings.admin_username)
         response = RedirectResponse(url="/", status_code=303)
         response.set_cookie(
-            key="session_token",
-            value=sign_session(username),
+            key=sessions.COOKIE_NAME,
+            value=token,
             httponly=True,
-            max_age=7 * 24 * 60 * 60,  # 7 days
+            max_age=max_age,
             samesite="lax",
             secure=True
         )
         return response
-    
+
+    login_guard.register_failure(client_ip, username)
     return templates.TemplateResponse(
         "login.html",
         {"request": request, "error": "Niepoprawny login lub hasło"}
@@ -87,8 +88,11 @@ def login_post(request: Request, username: str = Form(...), password: str = Form
 
 @app.get("/logout")
 def logout(request: Request):
+    # Kasujemy sesję po stronie serwera - samo delete_cookie usuwa ciasteczko
+    # tylko w tej przeglądarce, a skopiowana wartość działałaby dalej.
+    sessions.destroy_session(request.cookies.get(sessions.COOKIE_NAME))
     response = RedirectResponse(url="/login", status_code=303)
-    response.delete_cookie("session_token")
+    response.delete_cookie(sessions.COOKIE_NAME)
     return response
 
 app.include_router(dashboard.router, dependencies=[Depends(authenticate)])

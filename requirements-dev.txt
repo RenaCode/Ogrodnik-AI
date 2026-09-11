@@ -1,0 +1,7 @@
+# Zależności do testów. Instalacja (obraz stoi na Pythonie 3.12 - na 3.14
+# sqlmodel 0.0.22 nie startuje: "Field 'id' requires a type annotation"):
+#   uv venv --python 3.12 .venv
+#   uv pip install -r requirements.txt -r requirements-dev.txt
+#   .venv/bin/python -m pytest
+-r requirements.txt
+pytest==8.3.3
