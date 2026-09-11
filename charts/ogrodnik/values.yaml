@@ -5,7 +5,22 @@ replicaCount: 1
 revisionHistoryLimit: 3
 
 image:
-  repository: ghcr.io/mbeczynski/ogrodnik-ai
+  # WLASCICIEL PAKIETU TO `renacode`, NIE `mbeczynski`.
+  #
+  # Repozytorium przeszlo na organizacje RenaCode, a docker-publish.yml sklada
+  # adres z `IMAGE_OWNER: ${{ github.repository_owner }}` - wiec od tamtej pory
+  # obrazy ida do ghcr.io/renacode/ogrodnik-ai, a nie pod adres ponizej.
+  #
+  # To wlasnie stad wzial sie commit ec03452 "rollback image to sha-bedbf19
+  # (sha-e5afc34 missing from GHCR)". sha-e5afc34 NIE BYLO brakujace w GHCR -
+  # lezalo (i lezy) pod adresem `renacode`. Brakowalo go wylacznie pod starym
+  # adresem `mbeczynski`, w ktory patrzyl ten chart. Rollback leczyl objaw.
+  #
+  # Stan rejestru sprawdzony 2026-09-11 anonimowo:
+  #   ghcr.io/renacode/ogrodnik-ai   -> latest, sha-e5afc34, sha-37f6826
+  #   ghcr.io/mbeczynski/ogrodnik-ai -> zamrozone, ostatni sha-bedbf19
+  # Obecnosc sha-37f6826 potwierdzona osobno przez API rejestru (HTTP 200).
+  repository: ghcr.io/renacode/ogrodnik-ai
   tag: "sha-37f6826"
   pullPolicy: IfNotPresent
 
