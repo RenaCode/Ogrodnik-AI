@@ -136,15 +136,41 @@ async function identifyPlants() {
     data.suggestions.forEach((s) => {
       const li = document.createElement('li');
       li.className = 'border rounded p-2 text-sm flex justify-between items-center gap-2';
-      li.innerHTML = `
-        <div>
-          <div class="font-medium">${s.name}</div>
-          \${s.scientific_name ? `<div class="text-xs italic text-gray-500">\${s.scientific_name}</div>` : ''}
-          \${s.notes ? `<div class="text-xs text-gray-500">\${s.notes}</div>` : ''}
-        </div>
-        <button class="bg-purple-100 text-purple-700 text-xs rounded px-2 py-1 hover:bg-purple-200 shrink-0">{{ t("Użyj") }}</button>
-      `;
-      li.querySelector('button').addEventListener('click', () => {
+      // Budujemy węzły i wpisujemy tekst przez textContent, NIE przez innerHTML.
+      //
+      // Dwa powody. Po pierwsze `${s.name}` szło wcześniej do innerHTML bez
+      // ucieczki, a ta wartość to odpowiedź modelu na zdjęcie podane przez
+      // użytkownika - czyli treść, której nie układamy my. Wystarczy, żeby
+      // model przepisał do nazwy tekst widoczny na zdjęciu, a trafiał on do
+      // DOM-u jako znaczniki, w zalogowanej sesji administratora.
+      //
+      // Po drugie dwie kolejne linie były napisane jako `\${...}` wewnątrz
+      // literału - w szablonie JS backslash wyłącza podstawienie, więc nazwa
+      // łacińska i notatki nigdy się nie podstawiały; użytkownik widział w
+      // liście dosłowny napis "${s.scientific_name}".
+      const box = document.createElement('div');
+      const nameEl = document.createElement('div');
+      nameEl.className = 'font-medium';
+      nameEl.textContent = s.name || '';
+      box.appendChild(nameEl);
+      if (s.scientific_name) {
+        const sci = document.createElement('div');
+        sci.className = 'text-xs italic text-gray-500';
+        sci.textContent = s.scientific_name;
+        box.appendChild(sci);
+      }
+      if (s.notes) {
+        const notes = document.createElement('div');
+        notes.className = 'text-xs text-gray-500';
+        notes.textContent = s.notes;
+        box.appendChild(notes);
+      }
+      const useBtn = document.createElement('button');
+      useBtn.className = 'bg-purple-100 text-purple-700 text-xs rounded px-2 py-1 hover:bg-purple-200 shrink-0';
+      useBtn.textContent = '{{ t("Użyj") }}';
+      li.appendChild(box);
+      li.appendChild(useBtn);
+      useBtn.addEventListener('click', () => {
         document.getElementById('plant-name').value = s.name || '';
         document.getElementById('plant-scientific').value = s.scientific_name || '';
         document.getElementById('plant-notes').value = s.notes || '';

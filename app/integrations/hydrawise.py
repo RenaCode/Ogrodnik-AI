@@ -20,6 +20,34 @@ from .. import runtime_settings as rs
 BASE_URL = "https://api.hydrawise.com/api/v1"
 
 
+async def _get_json(url: str, params: dict[str, Any]) -> dict[str, Any]:
+    """
+    Wykonuje zapytanie i NIE WYPUSZCZA adresu URL do wyjątku.
+
+    Hydrawise przyjmuje klucz API w query stringu (tak ma zaprojektowane API,
+    nie mamy wyboru). `resp.raise_for_status()` httpx-a wkłada do komunikatu
+    pełny adres razem z query stringiem:
+
+        Client error '401 Unauthorized' for url
+        'https://api.hydrawise.com/api/v1/statusschedule.php?api_key=...'
+
+    a scheduler.py łapie to przez `logger.exception(...)`, więc klucz lądował
+    otwartym tekstem w logach poda - czyli tam, gdzie sięga każdy z dostępem do
+    logów albo do ich zbiórki, bez wchodzenia do panelu. Sprawdzone: klucz
+    faktycznie pojawia się w sformatowanym rekordzie logu.
+
+    Zamieniamy więc HTTPStatusError na wyjątek z samym kodem odpowiedzi.
+    """
+    async with httpx.AsyncClient(timeout=15) as client:
+        resp = await client.get(url, params=params)
+        if resp.is_error:
+            raise RuntimeError(
+                f"Hydrawise API odpowiedziało HTTP {resp.status_code} "
+                f"({url.rsplit('/', 1)[-1]})"
+            )
+        return resp.json()
+
+
 class HydrawiseClient:
     def __init__(self, api_key: str | None = None):
         self.api_key = api_key or rs.get_value("hydrawise_api_key")
@@ -35,17 +63,11 @@ class HydrawiseClient:
         params = {"api_key": self._require_key()}
         if controller_id:
             params["controller_id"] = controller_id
-        async with httpx.AsyncClient(timeout=15) as client:
-            resp = await client.get(f"{BASE_URL}/statusschedule.php", params=params)
-            resp.raise_for_status()
-            return resp.json()
+        return await _get_json(f"{BASE_URL}/statusschedule.php", params)
 
     async def get_controllers(self) -> dict[str, Any]:
         params = {"api_key": self._require_key()}
-        async with httpx.AsyncClient(timeout=15) as client:
-            resp = await client.get(f"{BASE_URL}/customerdetails.php", params=params)
-            resp.raise_for_status()
-            return resp.json()
+        return await _get_json(f"{BASE_URL}/customerdetails.php", params)
 
     async def run_zone(self, relay_id: int, seconds: int) -> dict[str, Any]:
         params = {
@@ -55,10 +77,7 @@ class HydrawiseClient:
             "relay_id": relay_id,
             "custom": seconds,
         }
-        async with httpx.AsyncClient(timeout=15) as client:
-            resp = await client.get(f"{BASE_URL}/setzone.php", params=params)
-            resp.raise_for_status()
-            return resp.json()
+        return await _get_json(f"{BASE_URL}/setzone.php", params)
 
     @staticmethod
     def parse_active_relays(status: dict[str, Any]) -> list[dict[str, Any]]:

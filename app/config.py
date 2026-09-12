@@ -38,12 +38,43 @@ class Settings(BaseSettings):
     # print(secrets.token_urlsafe(48))"
     secret_key: str
 
+    # Sieci, z których wolno wierzyć nagłówkowi X-Forwarded-For przy ustalaniu
+    # adresu klienta (patrz app/main.py:_client_ip). Lista CIDR po przecinku,
+    # np. "10.42.0.0/16" dla domyślnej sieci podów k3s.
+    #
+    # DOPÓKI JEST PUSTA, limit prób logowania działa GLOBALNIE, nie per adres:
+    # za Traefikiem każde połączenie przychodzi z poda ingressu, więc wszyscy
+    # klienci z internetu - razem z właścicielem - dzielą jeden licznik.
+    # Konsekwencja jest taka, że ktokolwiek może trzymać panel zamknięty przed
+    # właścicielem, wysyłając MAX_ATTEMPTS błędnych haseł raz na WINDOW_SECONDS.
+    #
+    # Wartości domyślnej celowo NIE MA: zaufanie nagłówkowi bez wskazania sieci
+    # proxy jest gorsze niż brak limitu (każdy dopisuje losowy adres i ma
+    # czysty licznik na każdą próbę). Adres sieci podów musi podać operator.
+    trusted_proxy_cidrs: str = ""
+
     data_dir: Path = ROOT_DIR / "data"
     photos_dir: Path = ROOT_DIR / "data" / "photos"
     maps_dir: Path = ROOT_DIR / "data" / "maps"
     db_path: Path = ROOT_DIR / "data" / "ogrodnik.db"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+    @property
+    def trusted_proxy_networks(self) -> list:
+        """TRUSTED_PROXY_CIDRS rozbite na obiekty sieci; wpisy nie do sparsowania pomijamy."""
+        import ipaddress
+
+        networks = []
+        for item in self.trusted_proxy_cidrs.split(","):
+            item = item.strip()
+            if not item:
+                continue
+            try:
+                networks.append(ipaddress.ip_network(item, strict=False))
+            except ValueError:
+                continue
+        return networks
 
 
 # Opisy zmiennych wymaganych do startu - trafiają do komunikatu błędu, żeby

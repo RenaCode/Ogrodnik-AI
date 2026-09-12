@@ -3,8 +3,30 @@
 <head>
   <meta charset="UTF-8" />
   <title>Ogrodnik AI</title>
+  <!--
+    UWAGA: OBA TE SKRYPTY WYKONUJA SIE W ZALOGOWANEJ SESJI ADMINISTRATORA,
+    a z tej sesji dostepna jest zakladka /settings z tokenem Home Assistanta
+    oraz kluczami Gemini i Hydrawise. Kto podmieni tresc pod tymi adresami,
+    czyta te sekrety - nie musi znac hasla.
+
+    chart.js: wersja przypieta i zabezpieczona atrybutem integrity. Wczesniej
+    bylo tu `chart.js@4`, czyli adres RUCHOMY - jsdelivr podawal pod nim
+    kazda kolejna wersje 4.x, wiec przegladarka wykonywala kod, ktorego nikt
+    tutaj nigdy nie widzial. Przy `integrity` przegladarka odrzuca plik,
+    ktorego skrot sie nie zgadza.
+
+    tailwind: NIE DA SIE tu dodac `integrity`, bo cdn.tailwindcss.com to
+    kompilator JIT budowany na biezaco - skrot zmienia sie sam z siebie.
+    Producent Tailwinda pisze wprost, ze ten adres nie jest przeznaczony na
+    produkcje. Wlasciwe domkniecie to zbudowanie arkusza i wlozenie go do
+    obrazu (app/static/), co wymaga kroku budowania w Node - decyzja i praca
+    poza zakresem tego audytu, ZOSTAJE OTWARTE.
+  -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <script
+    src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"
+    integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ"
+    crossorigin="anonymous"></script>
 </head>
 <body class="bg-green-50 text-gray-800">
   <nav class="bg-green-700 text-white px-6 py-3 flex items-center gap-4">

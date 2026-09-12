@@ -11,3 +11,8 @@
 **/*.db
 **/*.db-journal
 data/
+
+# `COPY app ./app` wciaga WSZYSTKO z app/, takze app/.DS_Store (6 KB metadanych
+# Findera, z nazwami plikow, ktore w tym katalogu kiedykolwiek lezaly). Plik jest
+# w .gitignore, wiec nie widac go w repo - ale do obrazu wchodzil.
+**/.DS_Store

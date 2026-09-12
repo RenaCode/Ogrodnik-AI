@@ -66,6 +66,53 @@ ingress:
       hosts:
         - ogrodnik.renacode.com
 
+  # NAGLOWKI BEZPIECZENSTWA (templates/middleware.yaml).
+  #
+  # Sprawdzone na produkcji 2026-09-12: ogrodnik.renacode.com odpowiadal BEZ
+  # ktoregokolwiek z nich. Statyczna wizytowka renacode.com ma je od 2026-09-11;
+  # panel administracyjny z tokenem Home Assistanta - nie mial.
+  securityHeaders:
+    enabled: true
+
+    hsts:
+      seconds: 31536000        # 1 rok
+      # Wylaczone z tego samego powodu co w renacode-website: includeSubDomains
+      # z JEDNEJ poddomeny nie obejmuje rodzenstwa, ale wlaczanie go tutaj bez
+      # przegladu calej domeny nie ma sensu, a odwolanie trwa tyle, ile seconds.
+      includeSubdomains: false
+      preload: false
+
+    # Panel ma formularze zmieniajace stan (ustawienia, usuwanie roslin,
+    # sterowanie kosiarka), a ciasteczko sesji jest SameSite=Lax - frameDeny
+    # zamyka droge przez nakladke w obcej ramce.
+    frameDeny: true
+    contentTypeNosniff: true
+    referrerPolicy: strict-origin-when-cross-origin
+
+    # CSP ODPOWIADA TEMU, CO STRONY FAKTYCZNIE LADUJA - sprawdzone w szablonach:
+    #   * cdn.tailwindcss.com (base.html, login.html) -> musi byc w script-src,
+    #     a poniewaz Tailwind Play wstrzykuje style w locie, takze w style-src,
+    #   * cdn.jsdelivr.net (chart.js, przypiety + integrity) -> script-src,
+    #   * dashboard.html i garden.html maja bloki <script> w tresci -> na razie
+    #     'unsafe-inline'; ich wyniesienie do app/static/ pozwoli to skreslic,
+    #   * kroje z /static, zdjecia z /photos i /maps -> 'self'.
+    #
+    # TO JEST POLITYKA PRZEJSCIOWA, nie docelowa. 'unsafe-inline' w script-src
+    # sprawia, ze CSP nie powstrzyma wstrzyknietego skryptu - jej wartosc tutaj
+    # to form-action, frame-ancestors i base-uri. Zamkniecie tego wymaga
+    # zbudowania Tailwinda do pliku i wyniesienia skryptow inline.
+    contentSecurityPolicy: >-
+      default-src 'self';
+      script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net;
+      style-src 'self' 'unsafe-inline';
+      img-src 'self' data:;
+      font-src 'self';
+      connect-src 'self';
+      object-src 'none';
+      frame-ancestors 'none';
+      base-uri 'none';
+      form-action 'self'
+
 persistence:
   size: 2Gi
   storageClass: local-path

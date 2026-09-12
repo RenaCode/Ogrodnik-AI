@@ -5,9 +5,17 @@ metadata:
   name: {{ include "ogrodnik.fullname" . }}
   labels:
     {{- include "ogrodnik.labels" . | nindent 4 }}
-  {{- with .Values.ingress.annotations }}
+  {{- if or .Values.ingress.annotations .Values.ingress.securityHeaders.enabled }}
   annotations:
+    {{- with .Values.ingress.annotations }}
     {{- toYaml . | nindent 4 }}
+    {{- end }}
+    {{- if .Values.ingress.securityHeaders.enabled }}
+    # Podpiecie Middleware'u z naglowkami bezpieczenstwa (templates/middleware.yaml).
+    # Nazwa MUSI miec postac <namespace>-<nazwa zasobu>@kubernetescrd - stad
+    # skladanie jej tutaj, a nie wpisanie na sztywno w values.yaml.
+    traefik.ingress.kubernetes.io/router.middlewares: {{ .Release.Namespace }}-{{ include "ogrodnik.fullname" . }}-security-headers@kubernetescrd
+    {{- end }}
   {{- end }}
 spec:
   {{- if .Values.ingress.className }}

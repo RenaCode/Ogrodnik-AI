@@ -1,0 +1,41 @@
+{{- if and .Values.ingress.enabled .Values.ingress.securityHeaders.enabled -}}
+# Naglowki bezpieczenstwa doklejane na krawedzi przez Traefika.
+#
+# DO TEJ PORY OGRODNIK NIE MIAL ICH WCALE. Sprawdzone na produkcji 2026-09-12:
+# GET https://ogrodnik.renacode.com/login odpowiadal 200 bez HSTS, bez
+# X-Frame-Options, bez CSP, bez nosniff - i z naglowkiem `server: uvicorn`.
+# Statyczna strona wizytowka (renacode-website) te naglowki ma; panel
+# administracyjny z tokenem Home Assistanta i kluczami API - nie mial.
+#
+# Sama annotacja `traefik.ingress.kubernetes.io/router.middlewares` na Ingressie
+# NIC NIE ROBI, dopoki nie istnieje zasob, na ktory wskazuje - i wtedy router
+# nie wstaje wcale. Dlatego Middleware musi byc czescia tego samego chartu.
+# Odwolanie w annotacji ma postac <namespace>-<nazwa>@kubernetescrd i jest
+# skladane w ingress.yaml, bo namespace znany jest dopiero przy renderowaniu.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: {{ include "ogrodnik.fullname" . }}-security-headers
+  labels:
+    {{- include "ogrodnik.labels" . | nindent 4 }}
+spec:
+  headers:
+    {{- with .Values.ingress.securityHeaders.hsts }}
+    # `| int64` NIE JEST OZDOBNIKIEM: Helm wczytuje liczby z values.yaml jako
+    # float64, a Go drukuje duze wartosci w notacji naukowej (`3.1536e+07`),
+    # czego CRD Traefika (int) nie przyjmuje - i wywraca sie dopiero przy
+    # synchronizacji, nie przy `helm template`.
+    stsSeconds: {{ .seconds | int64 }}
+    stsIncludeSubdomains: {{ .includeSubdomains }}
+    stsPreload: {{ .preload }}
+    forceSTSHeader: true
+    {{- end }}
+    frameDeny: {{ .Values.ingress.securityHeaders.frameDeny }}
+    contentTypeNosniff: {{ .Values.ingress.securityHeaders.contentTypeNosniff }}
+    referrerPolicy: {{ .Values.ingress.securityHeaders.referrerPolicy | quote }}
+    customResponseHeaders:
+      Content-Security-Policy: {{ .Values.ingress.securityHeaders.contentSecurityPolicy | quote }}
+      # `server: uvicorn` podaje kazdemu skanerowi, co tu stoi. Pusta wartosc
+      # w customResponseHeaders USUWA naglowek z odpowiedzi.
+      Server: ""
+{{- end }}
