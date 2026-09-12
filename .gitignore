@@ -1,0 +1,25 @@
+# Dane runtime: baza SQLite (tabela AppSetting trzyma tokeny HA/Gemini/Hydrawise
+# czystym tekstem), zdjęcia akcji i mapy ogrodu. Katalog tworzy się sam przy
+# starcie aplikacji (app/config.py), więc bez tego wpisu "git add -A" wciągnąłby
+# bazę z żywym tokenem Home Assistanta do historii i na push.
+data/
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# Sekrety środowiskowe (.env.example jest wersjonowany - to tylko szablon).
+.env
+.env.local
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# System / IDE
+.DS_Store
+.idea/
+.vscode/

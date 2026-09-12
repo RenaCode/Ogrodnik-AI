@@ -1,5 +1,9 @@
 fastapi==0.115.0
 uvicorn[standard]==0.30.6
+# pydantic przypięty jawnie: sqlmodel 0.0.22 jest wrażliwy na jego wersję
+# (na nowszym Pythonie potrafi wysypać się na "Field 'id' requires a type
+# annotation"), a bez pinu każdy rebuild obrazu ciągnął inną wersję.
+pydantic==2.13.5
 pydantic-settings==2.5.2
 sqlmodel==0.0.22
 httpx==0.27.2

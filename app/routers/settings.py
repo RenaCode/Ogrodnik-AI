@@ -1,11 +1,10 @@
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
 
 from .. import runtime_settings as rs
+from ..templates import templates
 
 router = APIRouter(prefix="/settings", tags=["settings"])
-templates = Jinja2Templates(directory="app/templates")
 
 
 def _fields_for_form() -> list[dict]:

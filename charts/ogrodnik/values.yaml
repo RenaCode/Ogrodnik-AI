@@ -1,14 +1,50 @@
 replicaCount: 1
 
+# Ile starych ReplicaSetow trzymac po rolloucie. Domyslne k8s to 10, co przy
+# deployu z kazdego pusha uzbieralo 115 pustych RS w ~2.5 miesiaca.
+revisionHistoryLimit: 3
+
 image:
-  repository: ghcr.io/mbeczynski/ogrodnik-ai
-  tag: "sha-bedbf19"
+  # WLASCICIEL PAKIETU TO `renacode`, NIE `mbeczynski`.
+  #
+  # Repozytorium przeszlo na organizacje RenaCode, a docker-publish.yml sklada
+  # adres z `IMAGE_OWNER: ${{ github.repository_owner }}` - wiec od tamtej pory
+  # obrazy ida do ghcr.io/renacode/ogrodnik-ai, a nie pod adres ponizej.
+  #
+  # To wlasnie stad wzial sie commit ec03452 "rollback image to sha-bedbf19
+  # (sha-e5afc34 missing from GHCR)". sha-e5afc34 NIE BYLO brakujace w GHCR -
+  # lezalo (i lezy) pod adresem `renacode`. Brakowalo go wylacznie pod starym
+  # adresem `mbeczynski`, w ktory patrzyl ten chart. Rollback leczyl objaw.
+  #
+  # Stan rejestru sprawdzony 2026-09-11 anonimowo:
+  #   ghcr.io/renacode/ogrodnik-ai   -> latest, sha-e5afc34, sha-37f6826
+  #   ghcr.io/mbeczynski/ogrodnik-ai -> zamrozone, ostatni sha-bedbf19
+  # Obecnosc sha-37f6826 potwierdzona osobno przez API rejestru (HTTP 200).
+  repository: ghcr.io/renacode/ogrodnik-ai
+  tag: "sha-32ac86b"
   pullPolicy: IfNotPresent
 
-dbImage:
-  repository: coleifer/sqlite-web
-  tag: latest
-  pullPolicy: IfNotPresent
+# Sidecar sqlite-web: przeglądarka bazy bez żadnego uwierzytelniania, z
+# zamontowanym PVC. W klastrze nasłuchiwałby na porcie poda dostępnym dla
+# każdego innego poda - czyli dawałby odczyt i ZAPIS tabeli appsetting (token
+# Home Assistanta, klucze Gemini/Hydrawise) z pominięciem logowania. Domyślnie
+# wyłączony; włączaj tylko doraźnie i najlepiej razem z NetworkPolicy.
+dbWeb:
+  enabled: false
+  image:
+    repository: coleifer/sqlite-web
+    # coleifer/sqlite-web publikuje wyłącznie tag "latest" (brak tagów wersji),
+    # więc jedyny sposób na przypięcie konkretnego obrazu to digest. Poniższy
+    # odpowiada "latest" z 2025-03-02.
+    digest: "sha256:1e5b86237968ed747554f951c6df2fc2fe4bf4ef070b8ca23d553d7f6c6426f7"
+    pullPolicy: IfNotPresent
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 128Mi
 
 service:
   type: ClusterIP
@@ -43,11 +79,3 @@ resources:
   requests:
     cpu: 100m
     memory: 256Mi
-
-dbResources:
-  limits:
-    cpu: 200m
-    memory: 256Mi
-  requests:
-    cpu: 50m
-    memory: 128Mi

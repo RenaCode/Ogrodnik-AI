@@ -9,12 +9,12 @@
 <body class="bg-green-50 text-gray-800">
   <nav class="bg-green-700 text-white px-6 py-3 flex items-center gap-4">
     <span class="font-bold text-lg">🌱 Ogrodnik AI</span>
-    <a href="/" class="hover:underline">Dashboard</a>
-    <a href="/garden" class="hover:underline">Mapa ogrodu</a>
-    <a href="/settings" class="hover:underline">Ustawienia</a>
+    <a href="/" class="hover:underline">{{ t("Dashboard") }}</a>
+    <a href="/garden" class="hover:underline">{{ t("Ogród") }}</a>
+    <a href="/settings" class="hover:underline">{{ t("Ustawienia") }}</a>
     <div class="ml-auto flex items-center gap-4">
       <span class="text-sm text-green-200">admin</span>
-      <a href="/logout" class="bg-green-800 hover:bg-green-900 px-3 py-1.5 rounded-lg text-sm transition-all font-medium border border-green-600/30">Wyloguj</a>
+      <a href="/logout" class="bg-green-800 hover:bg-green-900 px-3 py-1.5 rounded-lg text-sm transition-all font-medium border border-green-600/30">{{ t("Wyloguj") }}</a>
     </div>
   </nav>
   <main class="p-6 max-w-5xl mx-auto">

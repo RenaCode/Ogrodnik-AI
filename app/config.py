@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from dotenv import load_dotenv
+from pydantic import ValidationError
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
@@ -24,7 +25,18 @@ class Settings(BaseSettings):
     poll_interval_minutes: int = 5
 
     admin_username: str = "admin"
-    admin_password: str = "MojeSilneHasloOgrodnika"
+
+    # ADMIN_PASSWORD i SECRET_KEY celowo NIE mają wartości domyślnych. Repo jest
+    # publiczne (MIT), więc każda wpisana tu domyślna wartość jest z definicji
+    # znana wszystkim - a login chroni zakładkę "Ustawienia" z tokenem Home
+    # Assistanta i kluczami API. Ciche zejście na wartość domyślną jest gorsze
+    # niż awaria, bo instancja wygląda na działającą i zabezpieczoną. Brak
+    # którejkolwiek z tych zmiennych = twarde zatrzymanie startu (patrz niżej).
+    admin_password: str
+    # Klucz podpisu identyfikatorów sesji - osobny sekret, NIE pochodna hasła
+    # (patrz app/sessions.py). Wygeneruj: python -c "import secrets;
+    # print(secrets.token_urlsafe(48))"
+    secret_key: str
 
     data_dir: Path = ROOT_DIR / "data"
     photos_dir: Path = ROOT_DIR / "data" / "photos"
@@ -34,7 +46,52 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 
-settings = Settings()
+# Opisy zmiennych wymaganych do startu - trafiają do komunikatu błędu, żeby
+# operator wiedział nie tylko CZEGO brakuje, ale i co dokładnie wpisać.
+_REQUIRED_ENV_HELP: dict[str, str] = {
+    "ADMIN_PASSWORD": (
+        "hasło do logowania w panelu (login z ADMIN_USERNAME, domyślnie \"admin\")"
+    ),
+    "SECRET_KEY": (
+        "losowy klucz podpisu sesji, np. z:\n"
+        "        python -c \"import secrets; print(secrets.token_urlsafe(48))\""
+    ),
+}
+
+
+def _missing_env_error(exc: ValidationError) -> str:
+    missing = [
+        str(err["loc"][0]).upper()
+        for err in exc.errors()
+        if err.get("type") == "missing" and err.get("loc")
+    ]
+    lines = [
+        "",
+        "Ogrodnik AI nie wystartuje: brak wymaganych zmiennych środowiskowych.",
+        "",
+    ]
+    for name in missing:
+        lines.append(f"  {name} - {_REQUIRED_ENV_HELP.get(name, 'wartość wymagana')}")
+    lines += [
+        "",
+        "Ustaw je w pliku .env (patrz .env.example), w sekcji environment/env_file",
+        "docker-compose.yml, albo w Secrecie Kubernetes wskazanym przez",
+        "values.yaml -> secretName.",
+        "",
+    ]
+    return "\n".join(lines)
+
+
+try:
+    settings = Settings()
+except ValidationError as exc:
+    if any(err.get("type") == "missing" for err in exc.errors()):
+        # SystemExit zamiast ValidationError: chodzi o to, żeby w logach poda
+        # (albo w konsoli docker compose) było widać czytelną instrukcję, a nie
+        # ścianę stacktrace'u pydantica.
+        raise SystemExit(_missing_env_error(exc)) from None
+    raise
+
 settings.data_dir.mkdir(parents=True, exist_ok=True)
 settings.photos_dir.mkdir(parents=True, exist_ok=True)
 settings.maps_dir.mkdir(parents=True, exist_ok=True)

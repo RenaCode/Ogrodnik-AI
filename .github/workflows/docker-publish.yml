@@ -95,7 +95,18 @@ jobs:
 
       - name: Update image tag in values.yaml
         run: |
-          sed -i '/^image:/,/tag:/ { s/tag: .*/tag: "sha-${{ steps.vars.outputs.sha_short }}"/ }' charts/ogrodnik/values.yaml
+          # ZAKRES KONCZY SIE NA PRAWDZIWYM TAGU, NIE NA PIERWSZYM "tag:".
+          # Stara wersja brzmiala `/^image:/,/tag:/` i konczyla zakres na pierwszej
+          # linii zawierajacej "tag:" GDZIEKOLWIEK - wiec komentarz w rodzaju
+          # "do 2026-09-10 stalo tu `tag: latest`" przejmowal podmiane na siebie,
+          # a prawdziwy tag zostawal nietkniety. Wdrozenie wygladaloby na udane
+          # i nigdy by nie dzialalo. Sprawdzone na renacode-website, gdzie taki
+          # komentarz istnieje i lamie dokladnie ten wzorzec.
+          NOWY="sha-${{ steps.vars.outputs.sha_short }}"
+          sed -i -E "/^image:/,/^[[:space:]]*tag: \"sha-/ { s|^([[:space:]]*)tag: \"sha-[^\"]*\"$|\1tag: \"$NOWY\"| }" charts/ogrodnik/values.yaml
+
+          # CICHE NIEDOPASOWANIE MA BYC GLOSNE.
+          grep -q "tag: \"$NOWY\"" charts/ogrodnik/values.yaml || { echo "::error::sed nie podmienil tagu w charts/ogrodnik/values.yaml"; exit 1; }
           
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"

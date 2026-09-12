@@ -6,6 +6,7 @@ metadata:
     {{- include "ogrodnik.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
+  revisionHistoryLimit: {{ .Values.revisionHistoryLimit | default 3 }}
   selector:
     matchLabels:
       {{- include "ogrodnik.selectorLabels" . | nindent 6 }}
@@ -41,9 +42,17 @@ spec:
             initialDelaySeconds: 10
             periodSeconds: 10
 
+        {{- if .Values.dbWeb.enabled }}
+        # UWAGA: sqlite-web nie ma logowania, a nasłuchuje na porcie poda -
+        # każdy inny pod w klastrze może przez niego czytać ORAZ nadpisywać
+        # tabelę appsetting (tokeny HA/Gemini/Hydrawise), omijając logowanie do
+        # aplikacji. W docker-compose.yml ten port jest przypięty do 127.0.0.1;
+        # tutaj takiej ochrony nie ma, więc domyślnie sidecar jest wyłączony.
+        # Włączaj tylko doraźnie do debugowania i najlepiej razem z
+        # NetworkPolicy ograniczającą dostęp do portu 8080.
         - name: ogrodnik-db
-          image: "{{ .Values.dbImage.repository }}:{{ .Values.dbImage.tag }}"
-          imagePullPolicy: {{ .Values.dbImage.pullPolicy }}
+          image: "{{ .Values.dbWeb.image.repository }}@{{ .Values.dbWeb.image.digest }}"
+          imagePullPolicy: {{ .Values.dbWeb.image.pullPolicy }}
           ports:
             - containerPort: 8080
           env:
@@ -53,7 +62,8 @@ spec:
             - name: data-volume
               mountPath: /data
           resources:
-            {{- toYaml .Values.dbResources | nindent 12 }}
+            {{- toYaml .Values.dbWeb.resources | nindent 12 }}
+        {{- end }}
 
       volumes:
         - name: data-volume

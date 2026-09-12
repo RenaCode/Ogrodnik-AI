@@ -2,15 +2,14 @@ from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
 from sqlmodel import select
 
 from ..analysis import get_latest_insight
 from ..db import get_session
 from ..models import GardenAction, MowingEvent, WateringEvent
+from ..templates import templates
 
 router = APIRouter(tags=["dashboard"])
-templates = Jinja2Templates(directory="app/templates")
 
 
 @router.get("/", response_class=HTMLResponse)

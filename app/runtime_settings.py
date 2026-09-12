@@ -24,6 +24,7 @@ OVERRIDABLE_FIELDS: list[dict[str, str]] = [
     {"key": "ha_mower_entity_id", "label": "Home Assistant - entity_id kosiarki", "type": "text"},
     {"key": "gemini_api_key", "label": "Gemini AI - API key", "type": "password"},
     {"key": "gemini_model", "label": "Gemini AI - model", "type": "text"},
+    {"key": "language", "label": "Język / Language", "type": "select"},
 ]
 OVERRIDABLE_KEYS = {f["key"] for f in OVERRIDABLE_FIELDS}
 
@@ -36,6 +37,8 @@ def get_value(key: str) -> Optional[str]:
     if row and row.value:
         return row.value
     default = getattr(env_settings, key, None)
+    if key == "language" and not default:
+        return "pl"
     return str(default) if default is not None else None
 
 
