@@ -21,7 +21,7 @@ image:
   #   ghcr.io/mbeczynski/ogrodnik-ai -> zamrozone, ostatni sha-bedbf19
   # Obecnosc sha-37f6826 potwierdzona osobno przez API rejestru (HTTP 200).
   repository: ghcr.io/renacode/ogrodnik-ai
-  tag: "sha-32ac86b"
+  tag: "sha-0ac609a"
   pullPolicy: IfNotPresent
 
 # Sidecar sqlite-web: przeglądarka bazy bez żadnego uwierzytelniania, z
